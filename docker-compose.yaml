@@ -1,0 +1,62 @@
+services:
+  postgres-init:
+    image: pgimage-local:18.1
+    build:
+      context: .
+    user: root
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    entrypoint: ["bash", "-eu", "-c"]
+    command:
+      - |
+        chown -R postgres:postgres /var/lib/postgresql/data
+        if [ ! -s "$$PGDATA/PG_VERSION" ]; then
+          PWFILE=$$(mktemp)
+          printf '%s' "$$POSTGRES_PASSWORD" > "$$PWFILE"
+          chown postgres:postgres "$$PWFILE"
+          runuser -u postgres -- initdb \
+            -D "$$PGDATA" -U postgres \
+            --auth-host=scram-sha-256 --auth-local=trust \
+            --pwfile="$$PWFILE"
+          rm -f "$$PWFILE"
+          {
+            echo "host all all 0.0.0.0/0 scram-sha-256"
+            echo "host all all ::/0      scram-sha-256"
+          } >> "$$PGDATA/pg_hba.conf"
+          chown postgres:postgres "$$PGDATA/pg_hba.conf"
+        fi
+    restart: "no"
+
+  postgres:
+    image: pgimage-local:18.1
+    container_name: pgimage-local
+    depends_on:
+      postgres-init:
+        condition: service_completed_successfully
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    entrypoint: ["postgres"]
+    command:
+      - "-D"
+      - "/var/lib/postgresql/data/pgdata"
+      - "-c"
+      - "listen_addresses=*"
+      - "-c"
+      - "unix_socket_directories=/tmp"
+      - "-c"
+      - "shared_preload_libraries=pg_textsearch"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -h /tmp"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  pgdata:
