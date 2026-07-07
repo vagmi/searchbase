@@ -1,4 +1,7 @@
-ARG CNPG_BASE_TAG=18.1-standard-bookworm
+# Use the CNPG "system" flavor: it bundles the barman-cloud CLI tools (and the
+# Google Cloud Storage backend) that in-tree barmanObjectStore backups require.
+# The "standard"/"minimal" flavors dropped these and expect the Barman Cloud plugin.
+ARG CNPG_BASE_TAG=18.1-system-bookworm
 ARG PGVECTORSCALE_VERSION=0.9.0
 ARG PG_TEXTSEARCH_VERSION=1.1.0
 

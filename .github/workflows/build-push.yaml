@@ -15,7 +15,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  CNPG_BASE_TAG: 18.1-standard-bookworm
+  CNPG_BASE_TAG: 18.1-system-bookworm
 
 jobs:
   build:
@@ -109,6 +109,8 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            suffix=-searchbase,onlatest=true
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
